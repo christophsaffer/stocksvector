@@ -6,10 +6,10 @@ import os.path
 
 # CONFIG #
 STOCK_CSV_FILE = "stock_list_finanznachrichten.csv"
-DIR_DATA = "data"
+DIR_DATA = "."
 TODAY_DATE = str(calendar.datetime.datetime.now()).split(" ")[0]
 CURRENT_FILE = DIR_DATA + "/" + TODAY_DATE + ".csv"
-DEBUG = False
+DEBUG = True
 
 
 def print_debug(s):
@@ -18,7 +18,7 @@ def print_debug(s):
 
 
 def download(url, user_agent='wswp', num_retries=2, proxies=None):
-    print('Downloading:', url)
+    print_debug('Downloading:', url)
     headers = {'User-Agent': user_agent}
     try:
         resp = requests.get(f"{url}", headers=headers, proxies=proxies)
