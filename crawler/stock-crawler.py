@@ -2,8 +2,9 @@ import requests
 import calendar
 import pandas as pd
 import numpy as np
+import os.path
 
-### CONFIG ###
+# CONFIG #
 STOCK_CSV_FILE = "stock_list_finanznachrichten.csv"
 DIR_DATA = "data"
 TODAY_DATE = str(calendar.datetime.datetime.now()).split(" ")[0]
@@ -35,6 +36,18 @@ def download(url, user_agent='wswp', num_retries=2, proxies=None):
     return html
 
 
+def create_file_for_today():
+    if not os.path.isfile(CURRENT_FILE):
+        link_list = pd.read_csv(STOCK_CSV_FILE)
+        names = link_list["name"].values
+        names = ["timestamp"] + list(names)
+        stocks_empty = pd.DataFrame(columns=names)
+        stocks_empty.to_csv(CURRENT_FILE)
+        print_debug("Created {}".format(CURRENT_FILE))
+    else:
+        print_debug("{} already exists for today".format(CURRENT_FILE))
+
+
 def get_current_stock_values(stock_data):
     link_list = pd.read_csv(STOCK_CSV_FILE)
     names = stock_data.columns
@@ -51,15 +64,16 @@ def get_current_stock_values(stock_data):
             current_val = html.split("priceCurrency")[0][-150:-1].split('Rate">')[1].split("<")[0].replace(",", ".")
         except:
             current_val = -1
-        print_debug(name, ": ", current_val)
+        print_debug("{}: {}".format(name, current_val))
         curr_values.append(current_val)
 
     return pd.DataFrame(np.array(curr_values).reshape(1, len(curr_values)), columns=names)
 
 
 if __name__ == '__main__':
+    create_file_for_today()
     stock_data = pd.read_csv(CURRENT_FILE, index_col=0)
-    get_current_stock_values(stock_data)
-    updated_stock_data = stock_data.append(curr_minute, ignore_index=True)
-    updated_stock_data.to_csv(CURRENT_FILE)    
+    current_minute = get_current_stock_values(stock_data)
+    updated_stock_data = stock_data.append(current_minute, ignore_index=True)
+    updated_stock_data.to_csv(CURRENT_FILE)
 
