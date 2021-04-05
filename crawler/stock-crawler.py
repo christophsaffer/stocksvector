@@ -18,7 +18,7 @@ def print_debug(s):
 
 
 def download(url, user_agent='wswp', num_retries=2, proxies=None):
-    print_debug('Downloading:', url)
+    print_debug('Downloading: {}'.format(url))
     headers = {'User-Agent': user_agent}
     try:
         resp = requests.get(f"{url}", headers=headers, proxies=proxies)
