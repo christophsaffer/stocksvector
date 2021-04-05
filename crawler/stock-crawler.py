@@ -9,7 +9,7 @@ STOCK_CSV_FILE = "stock_list_finanznachrichten.csv"
 DIR_DATA = "data"
 TODAY_DATE = str(calendar.datetime.datetime.now()).split(" ")[0]
 CURRENT_FILE = DIR_DATA + "/" + TODAY_DATE + ".csv"
-DEBUG = True
+DEBUG = False
 
 
 def print_debug(s):
@@ -61,6 +61,7 @@ def get_current_stock_values(stock_data):
         current_val = -1
         try:
             html = download(link)
+            # apparently the most important line in this script: Responsible for parsing out the actual stock value
             current_val = html.split("priceCurrency")[0][-150:-1].split('Rate">')[1].split("<")[0].replace(",", ".")
         except:
             current_val = -1
