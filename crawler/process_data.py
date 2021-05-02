@@ -1,13 +1,22 @@
 import numpy as np
 import pandas as pd
-import calendar
 from os import listdir
 import datetime
+
+import cufflinks as cf
+import plotly.express as px
+cf.go_offline()
 
 
 # CONFIG
 DIR_DATA = "data"
 DIR_PROCESSED_DATA = "processed_data"
+DEBUG = True
+
+
+def print_debug(s):
+    if (DEBUG):
+        print(s)
 
 
 def get_csv_files(path: str) -> list:
@@ -36,10 +45,9 @@ def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
     return data
 
 
-def merge_files(file_list: list, step_size=0) -> pd.DataFrame:
-    if step_size == 0:
-        step_size = len(file_list)
+def merge_files(file_list: list, step_size=1) -> pd.DataFrame:
     df_combined = pd.DataFrame()
+    print_debug("Start to combine {} files".format(len(file_list)))
     for file in file_list:
         data = pd.read_csv("{}/{}".format(DIR_DATA, file), index_col=0)
         data = clean_data_set(data)
@@ -52,9 +60,42 @@ def merge_files(file_list: list, step_size=0) -> pd.DataFrame:
     return df_combined
 
 
+def plot_stocks_value_range(df: pd.DataFrame, minval: int, maxval: int):
+    x_values = df["day"] + " " + df["timestamp"]
+
+    dataframe = pd.DataFrame()
+    dataframe["date"] = x_values
+    for col in df.columns[3:]:
+        if maxval > df[col].mean() > minval:
+            dataframe[col] = df[col]
+
+    step_size = int(len(dataframe) / 4)
+    ticks = np.arange(4) * step_size + int(step_size / 2)
+    values = dataframe.loc[ticks, "date"].values
+    fig = px.line(dataframe, x=dataframe.index, y=[x for x in dataframe.columns if x != "date"],
+                  labels=dict(index="Time", value="Price"))
+    fig.update_layout(xaxis=dict(tickmode='array', tickvals=ticks, ticktext=values))
+
+    return fig
+
+
+def summarize_data_set(dataframe: pd.DataFrame, ao: int) -> pd.DataFrame:
+    # ao == average over
+    new_dataframe = pd.DataFrame(columns=dataframe.columns)
+    for i in range(int(len(dataframe) / ao)):
+        curr_col = list(dataframe.iloc[i * ao:(i + 1) * ao, 3:].mean().values)
+        mid = int(ao * (i + 0.5))
+        for j in [2, 1, 0]:
+            curr_col.insert(0, dataframe.iloc[mid, j])
+        new_dataframe.loc[len(new_dataframe)] = curr_col
+
+    return new_dataframe
+
+
 if __name__ == '__main__':
-    days_to_go_back = [3, 7, 30, 100]
-    for day in days_to_go_back:
-        files = get_files_last_n_days(day)
-        df = merge_files(files)
-        df.to_csv("{}/data_last_{}_days.csv".format(DIR_PROCESSED_DATA, day))
+    list_of_files = get_files_last_n_days(365)  # get stockdata from last 365 days (depends on input files)
+    df = merge_files(list_of_files)  # merge all files
+    df_s = summarize_data_set(df, 30)  # take mean value of every 30 minutes from each stock
+    plot_stocks_value_range(df_s, 90, 110).show()  # plot stocks between 90 and 110
+
+    #df.to_csv("{}/data_last_{}_days.csv".format(DIR_PROCESSED_DATA, day))
