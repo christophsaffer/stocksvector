@@ -5,32 +5,48 @@ from os import listdir
 import datetime
 
 
-#Config
+# CONFIG
 DIR_DATA = "data"
 DIR_PROCESSED_DATA = "processed_data"
 
 
-def get_csv_files(path):
+def get_csv_files(path: str) -> list:
     return [csv_file for csv_file in listdir(path) if ".csv" in csv_file]
 
 
-def get_files_last_N_days(N):
-    dt = datetime.datetime.now() - datetime.timedelta(N+1)
-    return np.sort([d for d in get_csv_files(DIR_DATA) if datetime.datetime.strptime(d.split(".")[0], '%Y-%m-%d') > dt])
+def get_files_last_n_days(n: int, init_day=datetime.datetime.now()) -> list:
+    dt = init_day - datetime.timedelta(n+1)
+    return sorted([d for d in get_csv_files(DIR_DATA) if datetime.datetime.strptime(d.split(".")[0], '%Y-%m-%d') > dt])
 
 
-def get_data_last_N_days(N, step_size=0):
-    files = get_files_last_N_days(N)
+def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
+    # remove milliseconds from "timestamp" column
+    data["timestamp"] = [timestamp.split(".")[0] for timestamp in data["timestamp"]]
+
+    # remove wrong values
+    for ind in data[(data.iloc[:, from_column:] < 0).any(1)].index:
+        for col in data.columns[from_column:]:
+            if data.loc[ind, col] < 0:
+                if ind != 0:
+                    # replace values that are smaller than 1 (=error) with the value from the minute before
+                    data.loc[ind, col] = data.loc[ind - 1, col]
+                else:
+                    # if first value is smaller than 1 (=error), then replace it with the mean value
+                    data.loc[ind, col] = data[data[col] > 0][col].mean()
+    return data
+
+
+def merge_files(file_list: list, step_size=0) -> pd.DataFrame:
     if step_size == 0:
-        step_size = len(files)
+        step_size = len(file_list)
     df_combined = pd.DataFrame()
-    for day in files:
-        df = pd.read_csv("{}/{}".format(DIR_DATA, day), index_col=0)
-        df = df[df.index % step_size == 0]
-        df["timestamp"] = [timestamp.split(".")[0] for timestamp in df["timestamp"]]
-        df.insert(0, "day", day.split(".")[0])
-        df.insert(0, "weekday", datetime.datetime.strptime(day.split(".")[0], '%Y-%m-%d').weekday())
-        df_combined = df_combined.append(df)
+    for file in file_list:
+        data = pd.read_csv("{}/{}".format(DIR_DATA, file), index_col=0)
+        data = clean_data_set(data)
+        data = data[data.index % step_size == 0]
+        data.insert(0, "day", file.split(".")[0])
+        data.insert(0, "weekday", datetime.datetime.strptime(file.split(".")[0], '%Y-%m-%d').weekday())
+        df_combined = df_combined.append(data)
     df_combined.set_index(np.arange(len(df_combined)), inplace=True)
 
     return df_combined
@@ -39,4 +55,6 @@ def get_data_last_N_days(N, step_size=0):
 if __name__ == '__main__':
     days_to_go_back = [3, 7, 30, 100]
     for day in days_to_go_back:
-        get_data_last_N_days(day).to_csv("{}/data_last_{}_days.csv".format(DIR_PROCESSED_DATA, day))
+        files = get_files_last_n_days(day)
+        df = merge_files(files)
+        df.to_csv("{}/data_last_{}_days.csv".format(DIR_PROCESSED_DATA, day))
