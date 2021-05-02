@@ -17,7 +17,7 @@ I uploaded some files in crawler/data.tar.gz. To check the current stock prices,
 
 ```
 cd crawler
-tar -xf data
+tar -xf data.tar.gz
 mkdir processed_data
 python3 process_data.py
 python3 plot_data.py
