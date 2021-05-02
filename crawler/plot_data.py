@@ -12,7 +12,7 @@ DIR_PROCESSED_DATA = "processed_data"
 
 
 def plot_stocks_value_range(df: pd.DataFrame, minval: int, maxval: int):
-    x_values = df["day"] + " " + df["timestamp"]
+    x_values = str(df.loc[:, "day"] + " " + df.loc[:, "timestamp"])
 
     dataframe = pd.DataFrame()
     dataframe["date"] = x_values
