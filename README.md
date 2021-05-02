@@ -8,7 +8,7 @@ At first, clone the repository.
 git clone https://github.com/mindpad/stocksvector.git
 ```
 
-Additionally, you need to have a number of libraries installed such as numpy, pandas, plotly, cufflinks ...
+This was tested and developed in python3.6. Additionally, you need to have a number of libraries installed such as numpy, pandas, plotly, cufflinks ...
 
 
 ## Plot current stocks
