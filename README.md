@@ -8,6 +8,9 @@ At first, clone the repository.
 git clone https://github.com/mindpad/stocksvector.git
 ```
 
+Additionally, you need to have a number of libraries installed such as numpy, pandas, plotly, cufflinks ...
+
+
 ## Plot current stocks
 
 I uploaded some files in crawler/data.tar.gz. To check the current stock prices, unpack the files, create the necessary processed_data folder and start the following scripts:
