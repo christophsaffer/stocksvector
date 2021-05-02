@@ -43,7 +43,7 @@ def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
 
 def merge_files(file_list: list, step_size=1) -> pd.DataFrame:
     df_combined = pd.DataFrame()
-    print_debug("Start to combine {} files".format(len(file_list)))
+    print_debug("Start to combine {} files ...".format(len(file_list)))
     for file in file_list:
         data = pd.read_csv("{}/{}".format(DIR_DATA, file), index_col=0)
         data = clean_data_set(data)
@@ -53,11 +53,13 @@ def merge_files(file_list: list, step_size=1) -> pd.DataFrame:
         df_combined = df_combined.append(data)
     df_combined.set_index(np.arange(len(df_combined)), inplace=True)
 
+    print_debug("done.")
     return df_combined
 
 
 def summarize_data_set(dataframe: pd.DataFrame, ao: int) -> pd.DataFrame:
     # ao == average over
+    print_debug("Start to summarise a stock value every {} minutes of each stock ...".format(ao))
     new_dataframe = pd.DataFrame(columns=dataframe.columns)
     for i in range(int(len(dataframe) / ao)):
         curr_col = list(dataframe.iloc[i * ao:(i + 1) * ao, 3:].mean().values)
@@ -65,6 +67,7 @@ def summarize_data_set(dataframe: pd.DataFrame, ao: int) -> pd.DataFrame:
         for j in [2, 1, 0]:
             curr_col.insert(0, dataframe.iloc[mid, j])
         new_dataframe.loc[len(new_dataframe)] = curr_col
+    print("done.")
 
     return new_dataframe
 
@@ -74,3 +77,4 @@ if __name__ == '__main__':
     df = merge_files(list_of_files)  # merge all files
     df_s = summarize_data_set(df, 30)  # take mean value of every 30 minutes from each stock
     df_s.to_csv("{}/processed_stock_data.csv".format(DIR_PROCESSED_DATA))
+    print_debug("Saved processed dataframe to {}/".format(DIR_PROCESSED_DATA))
