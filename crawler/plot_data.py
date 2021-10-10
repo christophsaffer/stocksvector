@@ -33,4 +33,4 @@ def plot_stocks_value_range(df: pd.DataFrame, minval: int, maxval: int):
 if __name__ == '__main__':
     df = pd.read_csv("{}/processed_stock_data.csv".format(DIR_PROCESSED_DATA), index_col=0)
     # adjust the range of the stocks you'd like to check (df, min, max)
-    plot_stocks_value_range(df, 90, 110).show()
+    plot_stocks_value_range(df, 30, 80).show()

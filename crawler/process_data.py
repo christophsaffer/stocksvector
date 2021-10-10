@@ -27,6 +27,7 @@ def get_files_last_n_days(n: int, init_day=datetime.datetime.now()) -> list:
 def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
     # remove milliseconds from "timestamp" column
     data["timestamp"] = [timestamp.split(".")[0] for timestamp in data["timestamp"]]
+    data.insert(0, "daytime", [int(timestamp.split(":")[0]) - 8 for timestamp in data["timestamp"]])
 
     # remove wrong values
     for ind in data[(data.iloc[:, from_column:] < 0).any(1)].index:
@@ -38,7 +39,7 @@ def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
                 else:
                     # if first value is smaller than 1 (=error), then replace it with the mean value
                     data.loc[ind, col] = data[data[col] > 0][col].mean()
-    return data
+    return data[60:900].reset_index(drop=True)
 
 
 def merge_files(file_list: list, step_size=1) -> pd.DataFrame:
@@ -73,8 +74,8 @@ def summarize_data_set(dataframe: pd.DataFrame, ao: int) -> pd.DataFrame:
 
 
 if __name__ == '__main__':
-    list_of_files = get_files_last_n_days(365)  # get stockdata from last 365 days (depends on input files)
+    list_of_files = get_files_last_n_days(5)  # get stockdata from last 365 days (depends on input files)
     df = merge_files(list_of_files)  # merge all files
-    df_s = summarize_data_set(df, 30)  # take mean value of every 30 minutes from each stock
+    df_s = summarize_data_set(df, 2)  # take mean value of every 30 minutes from each stock
     df_s.to_csv("{}/processed_stock_data.csv".format(DIR_PROCESSED_DATA))
     print_debug("Saved processed dataframe to {}/".format(DIR_PROCESSED_DATA))
