@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from os import listdir
 import datetime
+from scipy.stats import zscore
 
 
 # CONFIG
@@ -27,7 +28,6 @@ def get_files_last_n_days(n: int, init_day=datetime.datetime.now()) -> list:
 def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
     # remove milliseconds from "timestamp" column
     data["timestamp"] = [timestamp.split(".")[0] for timestamp in data["timestamp"]]
-    data.insert(0, "daytime", [int(timestamp.split(":")[0]) - 8 for timestamp in data["timestamp"]])
 
     # remove wrong values
     for ind in data[(data.iloc[:, from_column:] < 0).any(1)].index:
@@ -39,10 +39,12 @@ def clean_data_set(data: pd.DataFrame, from_column=1) -> pd.DataFrame:
                 else:
                     # if first value is smaller than 1 (=error), then replace it with the mean value
                     data.loc[ind, col] = data[data[col] > 0][col].mean()
+
+    data.insert(0, "daytime", [int(timestamp.split(":")[0]) - 8 for timestamp in data["timestamp"]])
     return data[60:900].reset_index(drop=True)
 
 
-def merge_files(file_list: list, step_size=1) -> pd.DataFrame:
+def merge_files(file_list: list, step_size=1, apply_zscore=False) -> pd.DataFrame:
     df_combined = pd.DataFrame()
     print_debug("Start to combine {} files ...".format(len(file_list)))
     for file in file_list:
@@ -54,6 +56,10 @@ def merge_files(file_list: list, step_size=1) -> pd.DataFrame:
         df_combined = df_combined.append(data)
     df_combined.set_index(np.arange(len(df_combined)), inplace=True)
 
+    if apply_zscore:
+        for col in df_combined.columns[4:]:
+            df_combined.loc[:, col] = zscore(df_combined.loc[:, col])
+
     print_debug("done.")
     return df_combined
 
@@ -63,12 +69,25 @@ def summarize_data_set(dataframe: pd.DataFrame, ao: int) -> pd.DataFrame:
     print_debug("Start to summarise a stock value every {} minutes of each stock ...".format(ao))
     new_dataframe = pd.DataFrame(columns=dataframe.columns)
     for i in range(int(len(dataframe) / ao)):
-        curr_col = list(dataframe.iloc[i * ao:(i + 1) * ao, 3:].mean().values)
+        curr_col = list(dataframe.iloc[i * ao:(i + 1) * ao, 4:].mean().values)
         mid = int(ao * (i + 0.5))
-        for j in [2, 1, 0]:
+        for j in [3, 2, 1, 0]:
             curr_col.insert(0, dataframe.iloc[mid, j])
         new_dataframe.loc[len(new_dataframe)] = curr_col
     print("done.")
+
+    return new_dataframe
+
+
+def create_cross_relation_df(dataframe: pd.DataFrame) -> pd.DataFrame:
+    new_dataframe = pd.DataFrame(columns=["stock", "mean", "std", "range", "category"])
+    for col in dataframe.columns[4:]:
+        df_mean = np.mean(dataframe.loc[:, col])
+        df_std = np.std(dataframe.loc[:, col])
+        df_range = np.max(dataframe.loc[:, col]) - np.min(dataframe.loc[:, col])
+        df_cat = 0
+        new_row = {"stock": col, "mean": df_mean, "std": df_std, "range": df_range, "category": df_cat}
+        new_dataframe = new_dataframe.append(new_row, ignore_index=True)
 
     return new_dataframe
 

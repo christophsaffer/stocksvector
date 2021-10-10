@@ -16,7 +16,7 @@ def plot_stocks_value_range(df: pd.DataFrame, minval: int, maxval: int):
 
     dataframe = pd.DataFrame()
     dataframe["date"] = x_values
-    for col in df.columns[3:]:
+    for col in df.columns[4:]:
         if maxval > df[col].mean() > minval:
             dataframe[col] = df[col]
 
